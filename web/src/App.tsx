@@ -89,23 +89,25 @@ function App() {
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
-        <h1 style={{ flex: 1, margin: 0 }}>ConsolePanel</h1>
-        <button
-          onClick={() => setThumbnailMode(!thumbnailMode)}
-          style={{ marginRight: 8 }}
-          title={thumbnailMode ? 'List view' : 'Thumbnail view'}
-        >
-          {thumbnailMode ? <FiList /> : <FiGrid />}
-        </button>
-        <button onClick={fetchWindows} style={{ marginRight: 8 }}>
-          <FiRefreshCw style={{ marginRight: 4 }} /> Refresh
-        </button>
-        <button onClick={handleNewConsole}>
-          <FiPlus style={{ marginRight: 4 }} /> New Console
-        </button>
-      </div>
+    <div className="app-container">
+      <header className="header">
+        <h1>ConsolePanel</h1>
+        <div className="controls">
+          <button
+            onClick={() => setThumbnailMode(!thumbnailMode)}
+            title={thumbnailMode ? 'List view' : 'Thumbnail view'}
+          >
+            {thumbnailMode ? <FiList style={{ marginRight: 8 }} /> : <FiGrid style={{ marginRight: 8 }} />}
+            {thumbnailMode ? 'List View' : 'Grid View'}
+          </button>
+          <button onClick={fetchWindows}>
+            <FiRefreshCw style={{ marginRight: 8 }} /> Refresh
+          </button>
+          <button onClick={handleNewConsole} className="primary">
+            <FiPlus style={{ marginRight: 8 }} /> New Console
+          </button>
+        </div>
+      </header>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40 }}>Loading...</div>
@@ -114,7 +116,7 @@ function App() {
           No windows found
         </div>
       ) : (
-        <div>
+        <div className={thumbnailMode ? "windows-grid" : "windows-list"}>
           {windows.map((w, i) => (
             <ConsoleItem
               key={w.handle}

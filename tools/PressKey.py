@@ -22,8 +22,8 @@ def focus_window(hwnd):
     """Focus window, restore if minimized."""
     if user32.IsIconic(hwnd):
         user32.ShowWindow(hwnd, SW_RESTORE)
-    else:
-        user32.ShowWindow(hwnd, SW_SHOW)
+    # Do NOT call ShowWindow(SW_SHOW) on visible windows - it can destroy
+    # certain window types (Windows Terminal) when called from background processes
     user32.SetForegroundWindow(hwnd)
     time.sleep(0.1)
 

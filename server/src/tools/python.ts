@@ -59,6 +59,14 @@ export async function killWindow(handle: string): Promise<{ ok: boolean; error?:
   return JSON.parse(r.stdout.trim() || '{"ok":false}');
 }
 
+export async function captureWindowPy(handle: string, outPath: string): Promise<{ ok: boolean; png?: string; width?: number; height?: number; error?: string }> {
+  const r = await runPython('CaptureWindow.py', [handle, outPath]);
+  if (r.code !== 0 && !r.stdout.trim()) {
+    throw new Error(`CaptureWindow.py failed (code=${r.code}): ${r.stderr || r.stdout}`);
+  }
+  return JSON.parse(r.stdout.trim() || '{"ok":false}');
+}
+
 export async function newConsole(command?: string, title?: string): Promise<{ ok: boolean; error?: string }> {
   const args: string[] = [];
   if (command) {

@@ -10,8 +10,12 @@ import { newHandler } from './routes/new';
 
 const app = express();
 
-// Enable CORS for all origins
-app.use(cors());
+// Enable CORS for all origins and methods
+app.use(cors({
+  origin: '*',
+  methods: '*',
+  allowedHeaders: '*'
+}));
 
 // Parse JSON bodies
 app.use(express.json());

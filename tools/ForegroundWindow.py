@@ -26,11 +26,11 @@ def foreground_window(handle_str):
     if not user32.IsWindow(hwnd):
         return {"ok": False, "error": f"Window not found: {handle_str}"}
 
-    # Check if minimized and restore
+    # Only restore if minimized - do NOT call ShowWindow(SW_SHOW) on visible windows
+    # as it can destroy certain window types (Windows Terminal) when called from
+    # a background/server process context
     if user32.IsIconic(hwnd):
         user32.ShowWindow(hwnd, SW_RESTORE)
-    else:
-        user32.ShowWindow(hwnd, SW_SHOW)
 
     # Bring to foreground
     result = user32.SetForegroundWindow(hwnd)
