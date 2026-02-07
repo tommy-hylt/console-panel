@@ -4,26 +4,32 @@
 import sys
 import json
 import subprocess
-import time
-import ctypes
-from ctypes import wintypes
 
-user32 = ctypes.windll.user32
+# Windows flag for creating new console
+CREATE_NEW_CONSOLE = 0x00000010
 
 def new_console(command=None, title=None):
     try:
-        if command:
-            # Run custom command
-            cmd = f'start cmd /k "{command}"'
-        elif title:
-            # Open cmd with custom title
-            cmd = f'start cmd /k "title {title}"'
+        # Build command to run in new console
+        if title:
+            cmd_str = f'title {title}'
+            if command:
+                cmd_str += f' && {command}'
+        elif command:
+            cmd_str = command
         else:
-            # Just open cmd
-            cmd = 'start cmd'
+            cmd_str = None
 
-        subprocess.Popen(cmd, shell=True)
-        time.sleep(0.3)  # Brief delay for window to appear
+        args = ['cmd.exe']
+        if cmd_str:
+            args.extend(['/k', cmd_str])
+
+        # Create new console window
+        subprocess.Popen(
+            args,
+            creationflags=CREATE_NEW_CONSOLE,
+            close_fds=True
+        )
 
         return {"ok": True, "command": command or "cmd", "title": title}
     except Exception as e:

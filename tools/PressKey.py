@@ -40,6 +40,7 @@ def press_key(handle_str, key):
 
     try:
         import pyautogui
+        pyautogui.FAILSAFE = False
 
         # Handle key combinations like "ctrl+c", "alt+f4"
         key = key.strip().lower()

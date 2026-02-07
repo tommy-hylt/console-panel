@@ -41,6 +41,7 @@ def type_text(handle_str, text):
     # Use pyautogui for typing
     try:
         import pyautogui
+        pyautogui.FAILSAFE = False
         pyautogui.typewrite(text, interval=0.01) if text.isascii() else pyautogui.write(text)
         return {"ok": True, "handle": handle_str, "text": text}
     except Exception as e:
