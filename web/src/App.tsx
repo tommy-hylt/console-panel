@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FiPlus, FiRefreshCw } from 'react-icons/fi';
+import { FiPlus, FiRefreshCw, FiGrid, FiList } from 'react-icons/fi';
 import type { WindowInfo } from './api';
 import { listWindows, newConsole } from './api';
 import { ConsoleItem } from './ConsoleItem';
@@ -8,6 +8,7 @@ import './App.css';
 function App() {
   const [windows, setWindows] = useState<WindowInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [thumbnailMode, setThumbnailMode] = useState(false);
 
   const fetchWindows = useCallback(async () => {
     try {
@@ -91,6 +92,13 @@ function App() {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
         <h1 style={{ flex: 1, margin: 0 }}>ConsolePanel</h1>
+        <button
+          onClick={() => setThumbnailMode(!thumbnailMode)}
+          style={{ marginRight: 8 }}
+          title={thumbnailMode ? 'List view' : 'Thumbnail view'}
+        >
+          {thumbnailMode ? <FiList /> : <FiGrid />}
+        </button>
         <button onClick={fetchWindows} style={{ marginRight: 8 }}>
           <FiRefreshCw style={{ marginRight: 4 }} /> Refresh
         </button>
@@ -118,6 +126,7 @@ function App() {
               onRemove={() => removeWindow(w.handle)}
               isFirst={i === 0}
               isLast={i === windows.length - 1}
+              thumbnailMode={thumbnailMode}
             />
           ))}
         </div>

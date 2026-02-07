@@ -12,6 +12,7 @@ interface ConsoleItemProps {
   onRemove: () => void;
   isFirst: boolean;
   isLast: boolean;
+  thumbnailMode: boolean;
 }
 
 export function ConsoleItem({
@@ -23,6 +24,7 @@ export function ConsoleItem({
   onRemove,
   isFirst,
   isLast,
+  thumbnailMode,
 }: ConsoleItemProps) {
   const [expanded, setExpanded] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -31,8 +33,11 @@ export function ConsoleItem({
   const [loading, setLoading] = useState(false);
   const refreshTimeoutRef = useRef<number | null>(null);
 
+  // Should capture when expanded OR in thumbnail mode
+  const shouldCapture = expanded || thumbnailMode;
+
   const refreshCapture = useCallback(async () => {
-    if (!expanded) return;
+    if (!shouldCapture) return;
     try {
       const blob = await captureWindow(winInfo.handle);
       const url = URL.createObjectURL(blob);
@@ -45,10 +50,10 @@ export function ConsoleItem({
     }
     // Schedule next refresh 1s after this response
     refreshTimeoutRef.current = setTimeout(refreshCapture, 1000) as unknown as number;
-  }, [expanded, winInfo.handle]);
+  }, [shouldCapture, winInfo.handle]);
 
   useEffect(() => {
-    if (expanded) {
+    if (shouldCapture) {
       refreshCapture();
     } else {
       if (refreshTimeoutRef.current) {
@@ -65,9 +70,10 @@ export function ConsoleItem({
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [expanded]);
+  }, [shouldCapture]);
 
-  const handleForeground = async () => {
+  const handleForeground = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     await foregroundWindow(winInfo.handle);
   };
 
@@ -87,14 +93,72 @@ export function ConsoleItem({
     setLoading(false);
   };
 
-  const handleKill = async () => {
+  const handleKill = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm(`Close "${winInfo.title}"?`)) return;
     await killWindow(winInfo.handle);
     onRemove();
   };
 
+  // Thumbnail view
+  if (thumbnailMode && !expanded) {
+    return (
+      <div
+        style={{
+          border: '1px solid #ccc',
+          marginBottom: 8,
+          borderRadius: 4,
+          width: '100%',
+          cursor: 'pointer',
+        }}
+        onClick={() => setExpanded(true)}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', padding: 8, gap: 12 }}>
+          {/* Thumbnail */}
+          <div style={{ width: 200, flexShrink: 0 }}>
+            {imageUrl ? (
+              <img src={imageUrl} alt="Thumbnail" style={{ width: '100%', border: '1px solid #ddd', borderRadius: 2 }} />
+            ) : (
+              <div style={{ width: '100%', height: 120, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: 12 }}>
+                Loading...
+              </div>
+            )}
+          </div>
+          {/* Info and buttons */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 500, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {winInfo.title}
+            </div>
+            <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>{winInfo.handle}</div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <button onClick={handleForeground} title="Foreground">
+                <FiRefreshCw />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onMoveTop(); }} disabled={isFirst} title="Move to top">
+                <FiChevronsUp />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst} title="Move up">
+                <FiArrowUp />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onMoveDown(); }} disabled={isLast} title="Move down">
+                <FiArrowDown />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onMoveBottom(); }} disabled={isLast} title="Move to bottom">
+                <FiChevronsDown />
+              </button>
+              <button onClick={handleKill} title="Close console" style={{ color: 'red' }}>
+                <FiX />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal list view
   return (
-    <div style={{ border: '1px solid #ccc', marginBottom: 8, borderRadius: 4 }}>
+    <div style={{ border: '1px solid #ccc', marginBottom: 8, borderRadius: 4, width: '100%' }}>
       {/* Header row */}
       <div
         style={{
@@ -123,7 +187,7 @@ export function ConsoleItem({
         <button onClick={(e) => { e.stopPropagation(); onMoveBottom(); }} disabled={isLast} title="Move to bottom">
           <FiChevronsDown />
         </button>
-        <button onClick={(e) => { e.stopPropagation(); handleKill(); }} title="Close console" style={{ marginLeft: 8, color: 'red' }}>
+        <button onClick={handleKill} title="Close console" style={{ marginLeft: 8, color: 'red' }}>
           <FiX />
         </button>
       </div>
