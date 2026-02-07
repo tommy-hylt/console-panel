@@ -13,7 +13,7 @@ This project allows users to monitor and control console windows remotely via a 
 │   Web App   │ ◄─────────► │   Server    │ ◄─────────► │  tools/*.py      │
 │  (React)    │             │  (Express)  │             │  (Python)        │
 └─────────────┘             └─────────────┘             └──────────────────┘
-                                                        - CaptureWindow.py
+                                                        - ListWindows.py
                                                         - TypeText.py
                                                         - PressKey.py
                                                         - ForegroundWindow.py
@@ -33,7 +33,7 @@ ConsolePanel/
 │   │   └── tools/            # Python tool wrappers
 │   └── package.json
 ├── tools/                     # Python tools (each uses pyautogui/pywin32)
-│   ├── CaptureWindow.py      # Capture window screenshot
+│   ├── ListWindows.py        # List visible windows
 │   ├── TypeText.py           # Type text into window
 │   ├── PressKey.py           # Press key in window
 │   ├── ForegroundWindow.py   # Bring window to foreground
@@ -126,16 +126,16 @@ cd tools/CaptureWindows && dotnet build -c Release
 
 ## TODO
 
-- [ ] Create Python tools (TypeText, PressKey, ForegroundWindow, KillWindow, NewConsole)
-- [ ] Migrate CaptureWindows from C# to Python (or keep C# if working well)
-- [ ] Add `/foreground` endpoint
-- [ ] Add `/text` endpoint
-- [ ] Add `/key` endpoint
-- [ ] Add `/kill` endpoint
-- [ ] Add `/new` endpoint
-- [ ] Add hash-based 304 response to `/capture`
-- [ ] Create React web app with Vite
-- [ ] Implement console list UI
-- [ ] Implement auto-refresh with 1s interval
-- [ ] Add input text/key UI
-- [ ] Add console ordering (client-side)
+- [x] Create Python tools (ListWindows, TypeText, PressKey, ForegroundWindow, KillWindow, NewConsole)
+- [x] Add `/foreground` endpoint
+- [x] Add `/text` endpoint
+- [x] Add `/key` endpoint
+- [x] Add `/kill` endpoint
+- [x] Add `/new` endpoint
+- [x] Create React web app with Vite
+- [x] Implement console list UI
+- [x] Implement auto-refresh with 1s interval
+- [x] Add input text/key UI
+- [x] Add console ordering (client-side)
+- [ ] Add hash-based 304 response to `/capture` (optimization)
+- [ ] Migrate CaptureWindows from C# to Python (optional)
