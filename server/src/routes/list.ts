@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { listWindows } from '../tools/captureWindows';
+import { listWindows } from '../tools/python';
 
 export async function listHandler(_req: Request, res: Response) {
   try {
