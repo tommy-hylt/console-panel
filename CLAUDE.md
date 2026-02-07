@@ -9,17 +9,16 @@ This project allows users to monitor and control console windows remotely via a 
 ## Architecture
 
 ```
-┌─────────────┐    HTTP     ┌─────────────┐    spawn    ┌─────────────────────┐
-│   Web App   │ ◄─────────► │   Server    │ ◄─────────► │  CaptureWindows.exe │
-│  (browser)  │             │  (Express)  │             │  (C# .NET 8)        │
-└─────────────┘             └─────────────┘             └─────────────────────┘
-                                   │
-                                   │ subprocess
-                                   ▼
-                            ┌─────────────┐
-                            │  pyautogui  │
-                            │  (Python)   │
-                            └─────────────┘
+┌─────────────┐    HTTP     ┌─────────────┐    spawn    ┌──────────────────┐
+│   Web App   │ ◄─────────► │   Server    │ ◄─────────► │  tools/*.py      │
+│  (React)    │             │  (Express)  │             │  (Python)        │
+└─────────────┘             └─────────────┘             └──────────────────┘
+                                                        - CaptureWindow.py
+                                                        - TypeText.py
+                                                        - PressKey.py
+                                                        - ForegroundWindow.py
+                                                        - KillWindow.py
+                                                        - NewConsole.py
 ```
 
 ## Directory Structure
@@ -30,139 +29,113 @@ ConsolePanel/
 ├── server/                    # Express.js backend (TypeScript)
 │   ├── src/
 │   │   ├── index.ts          # Entry point, route registration
-│   │   ├── routes/
-│   │   │   ├── list.ts       # GET /list - list windows
-│   │   │   ├── capture.ts    # GET /capture/:handle - capture screenshot
-│   │   │   ├── text.ts       # POST /text - type text (TODO)
-│   │   │   └── key.ts        # POST /key - press key (TODO)
-│   │   └── tools/
-│   │       ├── captureWindows.ts  # CaptureWindows.exe wrapper
-│   │       └── pyautogui.ts       # pyautogui wrapper (TODO)
+│   │   ├── routes/           # API route handlers
+│   │   └── tools/            # Python tool wrappers
 │   └── package.json
-├── tools/
-│   └── CaptureWindows/       # C# window capture utility
-│       └── Program.cs
-└── web/                      # Frontend (TODO)
-    └── index.html
+├── tools/                     # Python tools (each uses pyautogui/pywin32)
+│   ├── CaptureWindow.py      # Capture window screenshot
+│   ├── TypeText.py           # Type text into window
+│   ├── PressKey.py           # Press key in window
+│   ├── ForegroundWindow.py   # Bring window to foreground
+│   ├── KillWindow.py         # Close/kill window
+│   ├── NewConsole.py         # Open new console
+│   └── CaptureWindows/       # Legacy C# tool (may deprecate)
+└── web/                       # React frontend
+    └── src/
 ```
 
 ## Server API
 
-### Existing Endpoints
+| Method | Endpoint | Query/Body | Description |
+|--------|----------|------------|-------------|
+| GET | `/list` | - | List windows: `[{handle, title, width, height, className, isVisible}]` |
+| GET | `/capture/:handle` | `?hash=xxx` | Capture screenshot. Returns 304 if hash matches. |
+| POST | `/text` | `{handle, text}` | Type text into window |
+| POST | `/key` | `{handle, key}` | Press key (e.g., "enter", "ctrl+c") |
+| POST | `/foreground` | `{handle}` | Bring window to foreground (unminimize if needed) |
+| POST | `/kill` | `{handle}` | Kill/close the window |
+| POST | `/new` | `{command?}` | Open new console (default: cmd.exe) |
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/list` | Returns JSON array of windows: `[{handle, title, width, height, className, isVisible}]` |
-| GET | `/capture/:handle` | Returns PNG screenshot of window. Header `X-Capture-JSON` contains metadata. |
+## Tools (Python)
 
-### Planned Endpoints
+Each tool is a standalone Python script using pyautogui and pywin32.
 
-| Method | Endpoint | Body | Description |
-|--------|----------|------|-------------|
-| POST | `/text` | `{handle, text}` | Focus window and type text via pyautogui |
-| POST | `/key` | `{handle, key}` | Focus window and press key via pyautogui |
-| POST | `/kill` | `{handle}` | Kill/close the console window |
-| POST | `/new` | `{command?}` | Open new console window |
-| POST | `/order` | `{handle, action}` | Reorder window (up/down/top/bottom) |
-
-## Tools
-
-### CaptureWindows (C# .NET 8)
-
-Windows-specific utility for capturing window screenshots.
-
-**Usage:**
+**Required packages:**
 ```bash
-dotnet CaptureWindows.dll --list
-dotnet CaptureWindows.dll --handle 0x304BE --out "C:\path\out"
+pip install pyautogui pywin32 pillow
 ```
 
-**Build:**
-```bash
-cd tools/CaptureWindows
-dotnet build -c Release
-```
+**Tool pattern:**
+- Accept arguments via command line
+- Output JSON to stdout
+- Exit code 0 = success, non-zero = error
 
-### pyautogui (Python)
+## Web App
 
-Used for keyboard/mouse input. Will be called via subprocess from server.
-
-**Required Python packages:**
-```bash
-pip install pyautogui pywin32
-```
-
-## Web App Design
-
-### Layout
-
-Each console appears as an expandable row:
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│ ▶ Console Title 1                           [↑][↓][⊤][⊥][×] │
-├──────────────────────────────────────────────────────────────┤
-│ ▼ Console Title 2                           [↑][↓][⊤][⊥][×] │
-│  ┌──────────────────────────────────────────────────────────┐│
-│  │              Screenshot (auto-refresh)                   ││
-│  └──────────────────────────────────────────────────────────┘│
-│  [Input Text] [Press Key] [Refresh]                          │
-│                                                              │
-│  ┌─────────────────────────────────────────────────┐ [Send]  │
-│  │ <textarea for input text>                       │         │
-│  └─────────────────────────────────────────────────┘         │
-└──────────────────────────────────────────────────────────────┘
-│ ▶ Console Title 3                           [↑][↓][⊤][⊥][×] │
-└──────────────────────────────────────────────────────────────┘
-                        [+ New Console]
-```
+### Tech Stack
+- React (Vite)
+- react-icons for UI icons
 
 ### Features
+- **Console list**: Each console as expandable row with title
+- **Screenshot**: Auto-refresh with 1s interval (between response end and next request start)
+- **Input Text**: Textarea with send button
+- **Press Key**: Input field with send button
+- **Foreground**: Bring masked/minimized window to front before capture
+- **Close**: Kill console (with confirmation)
+- **Ordering**: Reorder consoles up/down/top/bottom (client-side only)
+- **New Console**: Open new cmd.exe
 
-- **Expand/Collapse**: Click title row to toggle screenshot visibility
-- **Screenshot**: Shows captured window, manual or auto-refresh
-- **Input Text**: Opens textarea, sends text to console via pyautogui
-- **Press Key**: Opens input for key name (e.g., "enter", "ctrl+c"), sends to console
-- **Close**: Kills the console process (with confirmation dialog)
-- **Ordering buttons**: [↑] up, [↓] down, [⊤] topmost, [⊥] bottommost
-- **New Console**: Opens a new cmd.exe or specified command
+### Capture Optimization
+- Client sends hash of last received image
+- Server returns 304 (empty body) if image unchanged
+- Reduces bandwidth when console is idle
 
-## Development Commands
+## Development
 
+### Commands
 ```bash
 # Server
-cd server
-npm install
-npm run dev          # Development with ts-node
-npm run build        # Compile TypeScript
-npm start            # Run compiled JS
+cd server && npm install && npm run dev
 
-# CaptureWindows tool
-cd tools/CaptureWindows
-dotnet build -c Release
+# Web
+cd web && npm install && npm run dev
+
+# Build tools (legacy C#)
+cd tools/CaptureWindows && dotnet build -c Release
 ```
 
-## Configuration
+### Testing
+- **Server**: Spawn test consoles with title prefix `ConsolePanel-TestXXX`
+  ```bash
+  start cmd /k "title ConsolePanel-Test001"
+  ```
+- **Web**: Use Chrome DevTools MCP for browser testing
 
+### Configuration
 - Server port: `PORT` env var (default: 8787)
 - Server URL: http://127.0.0.1:8787
 
-## Implementation Notes
+## Development Approach
 
-- Use pyautogui for text/key input (cross-platform keyboard simulation)
-- Focus window via handle before sending input
-- pyautogui.write() for text, pyautogui.press() / hotkey() for keys
-- Consider adding rate limiting for input endpoints
-- Web app should poll /list periodically to update console list
-- Screenshots can be cached briefly to reduce load
+**Iterate incrementally:**
+1. Implement one feature at a time
+2. Test with real console windows
+3. Refine based on behavior
+4. Move to next feature
 
 ## TODO
 
-- [ ] Implement `/text` endpoint with pyautogui
-- [ ] Implement `/key` endpoint with pyautogui
-- [ ] Implement `/kill` endpoint
-- [ ] Implement `/new` endpoint
-- [ ] Implement `/order` endpoint
-- [ ] Create web/index.html frontend
-- [ ] Add window focus functionality before input
-- [ ] Add confirmation dialogs for destructive actions
+- [ ] Create Python tools (TypeText, PressKey, ForegroundWindow, KillWindow, NewConsole)
+- [ ] Migrate CaptureWindows from C# to Python (or keep C# if working well)
+- [ ] Add `/foreground` endpoint
+- [ ] Add `/text` endpoint
+- [ ] Add `/key` endpoint
+- [ ] Add `/kill` endpoint
+- [ ] Add `/new` endpoint
+- [ ] Add hash-based 304 response to `/capture`
+- [ ] Create React web app with Vite
+- [ ] Implement console list UI
+- [ ] Implement auto-refresh with 1s interval
+- [ ] Add input text/key UI
+- [ ] Add console ordering (client-side)
