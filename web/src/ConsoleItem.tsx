@@ -3,6 +3,10 @@ import { FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiChevronsUp, Fi
 import type { WindowInfo } from './api';
 import { captureWindow, foregroundWindow, typeText, pressKey, killWindow } from './api';
 
+// Refresh intervals
+const EXPANDED_REFRESH_MS = 2000;    // 2 seconds when expanded
+const THUMBNAIL_REFRESH_MS = 30000; // 30 seconds in thumbnail mode
+
 interface ConsoleItemProps {
   winInfo: WindowInfo;
   onMoveUp: () => void;
@@ -13,6 +17,7 @@ interface ConsoleItemProps {
   isFirst: boolean;
   isLast: boolean;
   thumbnailMode: boolean;
+  index: number; // For staggering refresh
 }
 
 export function ConsoleItem({
@@ -25,6 +30,7 @@ export function ConsoleItem({
   isFirst,
   isLast,
   thumbnailMode,
+  index,
 }: ConsoleItemProps) {
   const [expanded, setExpanded] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -32,9 +38,17 @@ export function ConsoleItem({
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const refreshTimeoutRef = useRef<number | null>(null);
+  const initialLoadRef = useRef(false);
 
   // Should capture when expanded OR in thumbnail mode
   const shouldCapture = expanded || thumbnailMode;
+
+  // Get refresh interval based on mode
+  const getRefreshInterval = useCallback(() => {
+    if (expanded) return EXPANDED_REFRESH_MS;
+    if (thumbnailMode) return THUMBNAIL_REFRESH_MS;
+    return EXPANDED_REFRESH_MS;
+  }, [expanded, thumbnailMode]);
 
   const refreshCapture = useCallback(async () => {
     if (!shouldCapture) return;
@@ -48,13 +62,20 @@ export function ConsoleItem({
     } catch (e) {
       console.error('Capture failed:', e);
     }
-    // Schedule next refresh 1s after this response
-    refreshTimeoutRef.current = setTimeout(refreshCapture, 1000) as unknown as number;
-  }, [shouldCapture, winInfo.handle]);
+    // Schedule next refresh
+    refreshTimeoutRef.current = setTimeout(refreshCapture, getRefreshInterval()) as unknown as number;
+  }, [shouldCapture, winInfo.handle, getRefreshInterval]);
 
   useEffect(() => {
     if (shouldCapture) {
-      refreshCapture();
+      // Stagger initial load: each item waits (index * 1s) before first capture
+      // This prevents all items from capturing at the same time
+      const staggerDelay = thumbnailMode && !expanded ? index * 1000 : 0;
+
+      if (!initialLoadRef.current || expanded) {
+        initialLoadRef.current = true;
+        refreshTimeoutRef.current = setTimeout(refreshCapture, staggerDelay) as unknown as number;
+      }
     } else {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
@@ -64,13 +85,14 @@ export function ConsoleItem({
         URL.revokeObjectURL(imageUrl);
         setImageUrl(null);
       }
+      initialLoadRef.current = false;
     }
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [shouldCapture]);
+  }, [shouldCapture, expanded, thumbnailMode, index]);
 
   const handleForeground = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,23 +131,25 @@ export function ConsoleItem({
           marginBottom: 8,
           borderRadius: 4,
           width: '100%',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
           cursor: 'pointer',
         }}
         onClick={() => setExpanded(true)}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', padding: 8, gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', padding: 8, gap: 12, overflow: 'hidden' }}>
           {/* Thumbnail */}
-          <div style={{ width: 200, flexShrink: 0 }}>
+          <div style={{ width: 160, flexShrink: 0 }}>
             {imageUrl ? (
               <img src={imageUrl} alt="Thumbnail" style={{ width: '100%', border: '1px solid #ddd', borderRadius: 2 }} />
             ) : (
-              <div style={{ width: '100%', height: 120, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: 12 }}>
+              <div style={{ width: '100%', height: 100, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: 12 }}>
                 Loading...
               </div>
             )}
           </div>
           {/* Info and buttons */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <div style={{ fontWeight: 500, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {winInfo.title}
             </div>
@@ -158,7 +182,7 @@ export function ConsoleItem({
 
   // Normal list view
   return (
-    <div style={{ border: '1px solid #ccc', marginBottom: 8, borderRadius: 4, width: '100%' }}>
+    <div style={{ border: '1px solid #ccc', marginBottom: 8, borderRadius: 4, width: '100%', boxSizing: 'border-box' }}>
       {/* Header row */}
       <div
         style={{
@@ -171,8 +195,8 @@ export function ConsoleItem({
         onClick={() => setExpanded(!expanded)}
       >
         {expanded ? <FiChevronDown /> : <FiChevronRight />}
-        <span style={{ marginLeft: 8, flex: 1, fontWeight: 500 }}>{winInfo.title}</span>
-        <span style={{ color: '#888', fontSize: 12, marginRight: 12 }}>{winInfo.handle}</span>
+        <span style={{ marginLeft: 8, flex: 1, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{winInfo.title}</span>
+        <span style={{ color: '#888', fontSize: 12, marginRight: 12, flexShrink: 0 }}>{winInfo.handle}</span>
 
         {/* Ordering buttons */}
         <button onClick={(e) => { e.stopPropagation(); onMoveTop(); }} disabled={isFirst} title="Move to top">

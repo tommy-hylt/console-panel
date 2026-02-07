@@ -127,6 +127,7 @@ function App() {
               isFirst={i === 0}
               isLast={i === windows.length - 1}
               thumbnailMode={thumbnailMode}
+              index={i}
             />
           ))}
         </div>
