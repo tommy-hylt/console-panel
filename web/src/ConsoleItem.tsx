@@ -4,7 +4,7 @@ import type { WindowInfo } from './api';
 import { captureWindow, foregroundWindow, typeText, pressKey, killWindow } from './api';
 
 interface ConsoleItemProps {
-  window: WindowInfo;
+  winInfo: WindowInfo;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onMoveTop: () => void;
@@ -15,7 +15,7 @@ interface ConsoleItemProps {
 }
 
 export function ConsoleItem({
-  window,
+  winInfo,
   onMoveUp,
   onMoveDown,
   onMoveTop,
@@ -34,7 +34,7 @@ export function ConsoleItem({
   const refreshCapture = useCallback(async () => {
     if (!expanded) return;
     try {
-      const blob = await captureWindow(window.handle);
+      const blob = await captureWindow(winInfo.handle);
       const url = URL.createObjectURL(blob);
       setImageUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -44,8 +44,8 @@ export function ConsoleItem({
       console.error('Capture failed:', e);
     }
     // Schedule next refresh 1s after this response
-    refreshTimeoutRef.current = window.setTimeout(refreshCapture, 1000) as unknown as number;
-  }, [expanded, window.handle]);
+    refreshTimeoutRef.current = setTimeout(refreshCapture, 1000) as unknown as number;
+  }, [expanded, winInfo.handle]);
 
   useEffect(() => {
     if (expanded) {
@@ -68,13 +68,13 @@ export function ConsoleItem({
   }, [expanded]);
 
   const handleForeground = async () => {
-    await foregroundWindow(window.handle);
+    await foregroundWindow(winInfo.handle);
   };
 
   const handleSendText = async () => {
     if (!inputValue.trim()) return;
     setLoading(true);
-    await typeText(window.handle, inputValue);
+    await typeText(winInfo.handle, inputValue);
     setInputValue('');
     setLoading(false);
   };
@@ -82,14 +82,14 @@ export function ConsoleItem({
   const handleSendKey = async () => {
     if (!inputValue.trim()) return;
     setLoading(true);
-    await pressKey(window.handle, inputValue);
+    await pressKey(winInfo.handle, inputValue);
     setInputValue('');
     setLoading(false);
   };
 
   const handleKill = async () => {
-    if (!confirm(`Close "${window.title}"?`)) return;
-    await killWindow(window.handle);
+    if (!confirm(`Close "${winInfo.title}"?`)) return;
+    await killWindow(winInfo.handle);
     onRemove();
   };
 
@@ -107,8 +107,8 @@ export function ConsoleItem({
         onClick={() => setExpanded(!expanded)}
       >
         {expanded ? <FiChevronDown /> : <FiChevronRight />}
-        <span style={{ marginLeft: 8, flex: 1, fontWeight: 500 }}>{window.title}</span>
-        <span style={{ color: '#888', fontSize: 12, marginRight: 12 }}>{window.handle}</span>
+        <span style={{ marginLeft: 8, flex: 1, fontWeight: 500 }}>{winInfo.title}</span>
+        <span style={{ color: '#888', fontSize: 12, marginRight: 12 }}>{winInfo.handle}</span>
 
         {/* Ordering buttons */}
         <button onClick={(e) => { e.stopPropagation(); onMoveTop(); }} disabled={isFirst} title="Move to top">

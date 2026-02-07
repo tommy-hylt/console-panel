@@ -110,7 +110,7 @@ function App() {
           {windows.map((w, i) => (
             <ConsoleItem
               key={w.handle}
-              window={w}
+              winInfo={w}
               onMoveUp={() => moveWindow(i, 'up')}
               onMoveDown={() => moveWindow(i, 'down')}
               onMoveTop={() => moveWindow(i, 'top')}
