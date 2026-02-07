@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+web/node_modules/
+
+# Web build
+web/dist/
 
 # Build outputs
 server/dist/

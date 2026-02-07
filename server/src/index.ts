@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { listHandler } from './routes/list';
 import { captureHandler } from './routes/capture';
 import { foregroundHandler } from './routes/foreground';
@@ -8,6 +9,9 @@ import { killHandler } from './routes/kill';
 import { newHandler } from './routes/new';
 
 const app = express();
+
+// Enable CORS for all origins
+app.use(cors());
 
 // Parse JSON bodies
 app.use(express.json());
