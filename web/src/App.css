@@ -168,21 +168,6 @@ button.danger:hover:not(:disabled) {
   margin-left: auto;
 }
 
-/* List view: single-line header */
-.windows-list .card-header {
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.windows-list .card-title-row {
-  flex: 1;
-  min-width: 0;
-}
-
-.windows-list .card-controls-row {
-  flex-shrink: 0;
-}
 
 .card-actions button {
   padding: 4px;
