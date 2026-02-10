@@ -12,7 +12,7 @@ export type ApiResult = {
   error?: string;
 };
 
-const API_BASE = 'http://127.0.0.1:8787';
+const API_BASE = '';
 
 export async function listWindows(): Promise<WindowInfo[]> {
   const res = await fetch(`${API_BASE}/list`);

@@ -132,33 +132,32 @@ export function ConsoleItem({
   return (
     <div className="console-card">
       <div className="card-header" onClick={toggleExpanded}>
-        {!thumbnailMode && (expanded ? <FiChevronDown /> : <FiChevronRight />)}
-        <span className="card-title" style={{ marginLeft: thumbnailMode ? 0 : 8 }}>{winInfo.title}</span>
-        <span className="card-handle">{winInfo.handle}</span>
-
-        <div className="card-actions" onClick={e => e.stopPropagation()}>
-          <button onClick={handleForeground} title="Bring to Foreground">
-            <FiExternalLink />
-          </button>
-          {!thumbnailMode && (
-            <>
-              <button onClick={onMoveTop} disabled={isFirst} title="Move to Top">
-                <FiChevronsUp />
-              </button>
-              <button onClick={onMoveUp} disabled={isFirst} title="Move Up">
-                <FiArrowUp />
-              </button>
-              <button onClick={onMoveDown} disabled={isLast} title="Move Down">
-                <FiArrowDown />
-              </button>
-              <button onClick={onMoveBottom} disabled={isLast} title="Move to Bottom">
-                <FiChevronsDown />
-              </button>
-            </>
-          )}
-          <button onClick={handleKill} className="danger" title="Close Window">
-            <FiX />
-          </button>
+        <div className="card-title-row">
+          {!thumbnailMode && (expanded ? <FiChevronDown /> : <FiChevronRight />)}
+          <span className="card-title" style={{ marginLeft: thumbnailMode ? 0 : 8 }}>{winInfo.title}</span>
+        </div>
+        <div className="card-controls-row">
+          <span className="card-handle">{winInfo.handle}</span>
+          <div className="card-actions" onClick={e => e.stopPropagation()}>
+            <button onClick={handleForeground} title="Bring to Foreground">
+              <FiExternalLink />
+            </button>
+            <button onClick={onMoveTop} disabled={isFirst} title="Move to Top">
+              <FiChevronsUp />
+            </button>
+            <button onClick={onMoveUp} disabled={isFirst} title="Move Up">
+              <FiArrowUp />
+            </button>
+            <button onClick={onMoveDown} disabled={isLast} title="Move Down">
+              <FiArrowDown />
+            </button>
+            <button onClick={onMoveBottom} disabled={isLast} title="Move to Bottom">
+              <FiChevronsDown />
+            </button>
+            <button onClick={handleKill} className="danger" title="Close Window">
+              <FiX />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -168,7 +167,7 @@ export function ConsoleItem({
             {imageUrl ? (
               <img src={imageUrl} alt="Console Preview" />
             ) : (
-              <div style={{ color: '#64748b', fontSize: '14px' }}>
+              <div style={{ color: '#525f7f', fontSize: '14px' }}>
                 <FiRefreshCw className="spin" style={{ marginRight: 8 }} />
                 Loading Preview...
               </div>
