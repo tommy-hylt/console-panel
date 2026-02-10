@@ -183,6 +183,22 @@ button.danger:hover:not(:disabled) {
   color: #fff;
 }
 
+.star-btn.starred {
+  color: #f5a623;
+  fill: #f5a623;
+  border-color: rgba(245, 166, 35, 0.4);
+}
+
+.star-btn.starred svg {
+  fill: #f5a623;
+}
+
+.star-btn.starred:hover {
+  background: rgba(245, 166, 35, 0.15) !important;
+  border-color: #f5a623 !important;
+  color: #f5a623 !important;
+}
+
 .card-content {
   padding: 16px;
 }
@@ -248,4 +264,46 @@ textarea::placeholder, input[type="text"]::placeholder {
 .spin {
   animation: spin 1s linear infinite;
   color: #ba54f5;
+}
+
+/* Star transition animations */
+.anim-item-exit {
+  animation: item-exit 500ms ease-in-out forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.anim-item-enter {
+  animation: item-enter 500ms ease-in-out forwards;
+  overflow: hidden;
+}
+
+@keyframes item-exit {
+  0% {
+    opacity: 1;
+    max-height: 600px;
+  }
+  40% {
+    opacity: 0;
+    max-height: 600px;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+  }
+}
+
+@keyframes item-enter {
+  0% {
+    opacity: 0;
+    max-height: 0;
+  }
+  60% {
+    opacity: 0;
+    max-height: 600px;
+  }
+  100% {
+    opacity: 1;
+    max-height: 600px;
+  }
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, 
-  FiChevronsUp, FiChevronsDown, FiX, FiSend, FiRefreshCw,
+import {
+  FiChevronRight, FiChevronDown, FiStar,
+  FiX, FiSend, FiRefreshCw,
   FiExternalLink, FiType, FiCommand
 } from 'react-icons/fi';
 import type { WindowInfo } from './api';
@@ -13,26 +13,18 @@ const THUMBNAIL_REFRESH_MS = 15000; // 15 seconds in grid mode
 
 interface ConsoleItemProps {
   winInfo: WindowInfo;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onMoveTop: () => void;
-  onMoveBottom: () => void;
+  isStarred: boolean;
+  onToggleStar: () => void;
   onRemove: () => void;
-  isFirst: boolean;
-  isLast: boolean;
   thumbnailMode: boolean;
   index: number; // For staggering refresh
 }
 
 export function ConsoleItem({
   winInfo,
-  onMoveUp,
-  onMoveDown,
-  onMoveTop,
-  onMoveBottom,
+  isStarred,
+  onToggleStar,
   onRemove,
-  isFirst,
-  isLast,
   thumbnailMode,
   index,
 }: ConsoleItemProps) {
@@ -142,17 +134,12 @@ export function ConsoleItem({
             <button onClick={handleForeground} title="Bring to Foreground">
               <FiExternalLink />
             </button>
-            <button onClick={onMoveTop} disabled={isFirst} title="Move to Top">
-              <FiChevronsUp />
-            </button>
-            <button onClick={onMoveUp} disabled={isFirst} title="Move Up">
-              <FiArrowUp />
-            </button>
-            <button onClick={onMoveDown} disabled={isLast} title="Move Down">
-              <FiArrowDown />
-            </button>
-            <button onClick={onMoveBottom} disabled={isLast} title="Move to Bottom">
-              <FiChevronsDown />
+            <button
+              onClick={onToggleStar}
+              className={isStarred ? 'star-btn starred' : 'star-btn'}
+              title={isStarred ? 'Unstar' : 'Star'}
+            >
+              <FiStar />
             </button>
             <button onClick={handleKill} className="danger" title="Close Window">
               <FiX />
