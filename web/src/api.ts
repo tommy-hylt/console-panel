@@ -1,6 +1,7 @@
 export type WindowInfo = {
   handle: string;
   title: string;
+  pid: number;
   width: number;
   height: number;
   className: string;

@@ -34,6 +34,7 @@ export function ConsoleItem({
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const refreshTimeoutRef = useRef<number | null>(null);
+  const refreshCaptureRef = useRef<() => void>(null);
   const initialLoadRef = useRef(false);
 
   // Should capture when expanded OR in thumbnail mode
@@ -58,9 +59,10 @@ export function ConsoleItem({
     } catch (e) {
       console.error('Capture failed:', e);
     }
-    // Schedule next refresh
-    refreshTimeoutRef.current = setTimeout(refreshCapture, getRefreshInterval()) as unknown as number;
+    // Schedule next refresh via ref to avoid self-reference
+    refreshTimeoutRef.current = setTimeout(() => refreshCaptureRef.current?.(), getRefreshInterval()) as unknown as number;
   }, [shouldCapture, winInfo.handle, getRefreshInterval]);
+  refreshCaptureRef.current = refreshCapture;
 
   useEffect(() => {
     if (shouldCapture) {
@@ -87,6 +89,7 @@ export function ConsoleItem({
         clearTimeout(refreshTimeoutRef.current);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- imageUrl intentionally excluded to avoid infinite loop
   }, [shouldCapture, expanded, thumbnailMode, index, refreshCapture]);
 
   const handleForeground = async (e: React.MouseEvent) => {
@@ -96,9 +99,10 @@ export function ConsoleItem({
 
   const handleSendText = async () => {
     if (!inputValue.trim()) return;
-    setLoading(true);
-    await typeText(winInfo.handle, inputValue);
+    const value = inputValue;
     setInputValue('');
+    setLoading(true);
+    await typeText(winInfo.handle, value);
     setLoading(false);
   };
 
@@ -106,7 +110,6 @@ export function ConsoleItem({
     if (!inputValue.trim()) return;
     setLoading(true);
     await pressKey(winInfo.handle, inputValue);
-    setInputValue('');
     setLoading(false);
   };
 
@@ -129,7 +132,7 @@ export function ConsoleItem({
           <span className="card-title" style={{ marginLeft: thumbnailMode ? 0 : 8 }}>{winInfo.title}</span>
         </div>
         <div className="card-controls-row">
-          <span className="card-handle">{winInfo.handle}</span>
+          <span className="card-handle">{winInfo.handle} · PID {winInfo.pid}</span>
           <div className="card-actions" onClick={e => e.stopPropagation()}>
             <button onClick={handleForeground} title="Bring to Foreground">
               <FiExternalLink />
@@ -164,11 +167,11 @@ export function ConsoleItem({
           {!thumbnailMode && (
             <>
               <div className="action-bar">
-                <button onClick={() => { setInputMode(inputMode === 'text' ? 'none' : 'text'); setInputValue(''); }}>
-                  <FiType style={{ marginRight: 8 }} /> Input Text
+                <button onClick={() => { setInputMode(inputMode === 'text' ? 'none' : 'text'); if (inputMode !== 'text') setInputValue(''); }}>
+                  <FiType style={{ marginRight: 8 }} /> Input Text{loading && inputMode !== 'key' ? '...' : ''}
                 </button>
-                <button onClick={() => { setInputMode(inputMode === 'key' ? 'none' : 'key'); setInputValue(''); }}>
-                  <FiCommand style={{ marginRight: 8 }} /> Press Key
+                <button onClick={() => { setInputMode(inputMode === 'key' ? 'none' : 'key'); if (inputMode !== 'key') setInputValue('enter'); }}>
+                  <FiCommand style={{ marginRight: 8 }} /> Press Key{loading && inputMode !== 'text' ? '...' : ''}
                 </button>
               </div>
 

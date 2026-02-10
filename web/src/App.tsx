@@ -13,7 +13,7 @@ function loadStarred(): Set<string> {
   try {
     const raw = localStorage.getItem(STARRED_KEY);
     if (raw) return new Set(JSON.parse(raw));
-  } catch {}
+  } catch { /* ignore corrupt localStorage */ }
   return new Set();
 }
 

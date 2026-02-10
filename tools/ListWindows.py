@@ -34,6 +34,11 @@ def get_window_rect(hwnd):
     user32.GetWindowRect(hwnd, ctypes.byref(rect))
     return rect.right - rect.left, rect.bottom - rect.top
 
+def get_window_pid(hwnd):
+    pid = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    return pid.value
+
 def list_windows():
     windows = []
 
@@ -48,6 +53,7 @@ def list_windows():
         windows.append({
             "handle": f"0x{hwnd:X}",
             "title": title,
+            "pid": get_window_pid(hwnd),
             "width": width,
             "height": height,
             "className": get_class_name(hwnd),
