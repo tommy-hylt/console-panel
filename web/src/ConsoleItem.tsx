@@ -36,7 +36,9 @@ export function ConsoleItem({
   const [expanded, setExpanded] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<'none' | 'text' | 'key'>('none');
-  const [inputValue, setInputValue] = useState('');
+  const [textValue, setTextValue] = useState('');
+  const [keyValue, setKeyValue] = useState('enter');
+  const [keyHistory, setKeyHistory] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
@@ -108,20 +110,29 @@ export function ConsoleItem({
   };
 
   const handleSendText = async () => {
-    if (!inputValue.trim()) return;
-    const value = inputValue;
-    setInputValue('');
+    if (!textValue.trim()) return;
+    const value = textValue;
+    setTextValue('');
     setLoading(true);
     await typeText(winInfo.handle, value);
     setLoading(false);
   };
 
+  const addToKeyHistory = (key: string) => {
+    setKeyHistory(prev => {
+      const filtered = prev.filter(k => k !== key);
+      return [key, ...filtered].slice(0, 5);
+    });
+  };
+
   const handleSendKey = async (value?: string) => {
-    const v = value ?? inputValue;
+    const v = value ?? keyValue;
     if (!v.trim()) return;
     setLoading(true);
     // Normalize: "Ctrl + C" -> "ctrl+c"
     const normalized = v.split('+').map(p => p.trim().toLowerCase()).filter(Boolean).join('+');
+    addToKeyHistory(normalized);
+    setKeyValue(normalized);
     await pressKey(winInfo.handle, normalized);
     setLoading(false);
   };
@@ -138,7 +149,7 @@ export function ConsoleItem({
     if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
     parts.push(e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase().replace('arrow', ''));
     const keyStr = parts.join('+');
-    setInputValue(keyStr);
+    setKeyValue(keyStr);
     handleSendKey(keyStr);
   };
 
@@ -273,11 +284,11 @@ export function ConsoleItem({
           {!thumbnailMode && (
             <>
               <div className="action-bar">
-                <button className={inputMode === 'text' ? 'active' : ''} onClick={() => { setInputMode(inputMode === 'text' ? 'none' : 'text'); if (inputMode !== 'text') setInputValue(''); }}>
-                  <FiType style={{ marginRight: 8 }} /> Input Text{loading && inputMode !== 'key' ? '...' : ''}
+                <button className={inputMode === 'text' ? 'active' : ''} onClick={() => setInputMode(inputMode === 'text' ? 'none' : 'text')}>
+                  <FiType style={{ marginRight: 8 }} /> Input Text{loading && inputMode === 'text' ? '...' : ''}
                 </button>
-                <button className={inputMode === 'key' ? 'active' : ''} onClick={() => { setInputMode(inputMode === 'key' ? 'none' : 'key'); if (inputMode !== 'key') setInputValue('enter'); }}>
-                  <FiCommand style={{ marginRight: 8 }} /> Press Key{loading && inputMode !== 'text' ? '...' : ''}
+                <button className={inputMode === 'key' ? 'active' : ''} onClick={() => setInputMode(inputMode === 'key' ? 'none' : 'key')}>
+                  <FiCommand style={{ marginRight: 8 }} /> Press Key{loading && inputMode === 'key' ? '...' : ''}
                 </button>
               </div>
 
@@ -286,30 +297,29 @@ export function ConsoleItem({
                   {inputMode === 'text' ? (
                     <div style={{ display: 'flex', gap: 8 }}>
                       <textarea
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
+                        value={textValue}
+                        onChange={(e) => setTextValue(e.target.value)}
                         placeholder="Enter text to type..."
                         rows={3}
                       />
-                      <button onClick={handleSendText} disabled={loading || !inputValue.trim()} className="primary">
+                      <button onClick={handleSendText} disabled={loading || !textValue.trim()} className="primary">
                         <FiSend />
                       </button>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div className="key-grid">
                       <button
                         onClick={toggleKeyListenMode}
                         className={keyListenMode ? 'active' : ''}
                         title={keyListenMode ? 'Stop listening' : 'Key listen mode'}
-                        style={{ flexShrink: 0 }}
                       >
                         <FiCrosshair />
                       </button>
                       <input
                         ref={keyInputRef}
                         type="text"
-                        value={inputValue}
-                        onChange={(e) => { if (!keyListenMode) setInputValue(e.target.value); }}
+                        value={keyValue}
+                        onChange={(e) => { if (!keyListenMode) setKeyValue(e.target.value); }}
                         placeholder={keyListenMode ? 'Press any key...' : 'Key (e.g., enter, ctrl+c)'}
                         onKeyDown={(e) => {
                           if (keyListenMode) {
@@ -321,9 +331,18 @@ export function ConsoleItem({
                         onBlur={() => setKeyListenMode(false)}
                         readOnly={keyListenMode}
                       />
-                      <button onClick={() => handleSendKey()} disabled={loading || !inputValue.trim()} className="primary">
+                      <button onClick={() => handleSendKey()} disabled={loading || !keyValue.trim()} className="primary">
                         <FiSend />
                       </button>
+                      {keyHistory.length > 0 && (
+                        <div className="key-history">
+                          {keyHistory.map(k => (
+                            <button key={k} className="key-history-tag" onClick={() => setKeyValue(k)}>
+                              {k}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

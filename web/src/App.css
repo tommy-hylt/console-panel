@@ -125,7 +125,7 @@ button.danger:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   padding: 12px 16px;
-  background: transparent;
+  background: #27293d;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
   gap: 4px;
@@ -316,6 +316,37 @@ textarea:focus, input[type="text"]:focus {
 
 textarea::placeholder, input[type="text"]::placeholder {
   color: #525f7f;
+}
+
+.key-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.key-history {
+  grid-column: 2;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.key-history-tag {
+  padding: 2px 10px;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  background: rgba(186, 84, 245, 0.1);
+  border: 1px solid rgba(186, 84, 245, 0.3);
+  color: #ba54f5;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.key-history-tag:hover:not(:disabled) {
+  background: rgba(186, 84, 245, 0.25);
+  border-color: #ba54f5;
+  color: #fff;
 }
 
 @keyframes spin {
