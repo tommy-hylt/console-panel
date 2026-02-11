@@ -112,7 +112,6 @@ button.danger:hover:not(:disabled) {
   background: #27293d;
   border: none;
   border-radius: 5px;
-  overflow: hidden;
   transition: box-shadow 0.2s, transform 0.2s;
   box-shadow: 0 1px 20px 0 rgba(0, 0, 0, 0.1);
 }
@@ -129,10 +128,14 @@ button.danger:hover:not(:disabled) {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
   gap: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-radius: 5px 5px 0 0;
 }
 
 .card-header:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: #2e3043;
 }
 
 .card-title-row {
