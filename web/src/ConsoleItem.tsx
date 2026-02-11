@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FiChevronRight, FiChevronDown, FiStar,
   FiX, FiSend, FiRefreshCw,
-  FiExternalLink, FiType, FiCommand, FiEdit2
+  FiExternalLink, FiType, FiCommand, FiEdit2,
+  FiCrosshair
 } from 'react-icons/fi';
 import type { WindowInfo } from './api';
 import { captureWindow, foregroundWindow, typeText, pressKey, killWindow } from './api';
@@ -39,10 +40,12 @@ export function ConsoleItem({
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
+  const [keyListenMode, setKeyListenMode] = useState(false);
   const refreshTimeoutRef = useRef<number | null>(null);
   const refreshCaptureRef = useRef<() => void>(null);
   const initialLoadRef = useRef(false);
   const nicknameInputRef = useRef<HTMLInputElement>(null);
+  const keyInputRef = useRef<HTMLInputElement>(null);
 
   // Should capture when expanded OR in thumbnail mode
   const shouldCapture = expanded || thumbnailMode;
@@ -113,13 +116,38 @@ export function ConsoleItem({
     setLoading(false);
   };
 
-  const handleSendKey = async () => {
-    if (!inputValue.trim()) return;
+  const handleSendKey = async (value?: string) => {
+    const v = value ?? inputValue;
+    if (!v.trim()) return;
     setLoading(true);
     // Normalize: "Ctrl + C" -> "ctrl+c"
-    const normalized = inputValue.split('+').map(p => p.trim().toLowerCase()).filter(Boolean).join('+');
+    const normalized = v.split('+').map(p => p.trim().toLowerCase()).filter(Boolean).join('+');
     await pressKey(winInfo.handle, normalized);
     setLoading(false);
+  };
+
+  const handleKeyListen = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!keyListenMode) return;
+    e.preventDefault();
+    // Build key name from event
+    const parts: string[] = [];
+    if (e.ctrlKey && e.key !== 'Control') parts.push('ctrl');
+    if (e.altKey && e.key !== 'Alt') parts.push('alt');
+    if (e.shiftKey && e.key !== 'Shift') parts.push('shift');
+    // Ignore standalone modifier presses
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
+    parts.push(e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase().replace('arrow', ''));
+    const keyStr = parts.join('+');
+    setInputValue(keyStr);
+    handleSendKey(keyStr);
+  };
+
+  const toggleKeyListenMode = () => {
+    const next = !keyListenMode;
+    setKeyListenMode(next);
+    if (next) {
+      setTimeout(() => keyInputRef.current?.focus(), 0);
+    }
   };
 
   const handleKill = async (e: React.MouseEvent) => {
@@ -268,15 +296,32 @@ export function ConsoleItem({
                       </button>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button
+                        onClick={toggleKeyListenMode}
+                        className={keyListenMode ? 'active' : ''}
+                        title={keyListenMode ? 'Stop listening' : 'Key listen mode'}
+                        style={{ flexShrink: 0 }}
+                      >
+                        <FiCrosshair />
+                      </button>
                       <input
+                        ref={keyInputRef}
                         type="text"
                         value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="Key (e.g., enter, ctrl+c)"
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleSendKey(); }}
+                        onChange={(e) => { if (!keyListenMode) setInputValue(e.target.value); }}
+                        placeholder={keyListenMode ? 'Press any key...' : 'Key (e.g., enter, ctrl+c)'}
+                        onKeyDown={(e) => {
+                          if (keyListenMode) {
+                            handleKeyListen(e);
+                          } else if (e.key === 'Enter') {
+                            handleSendKey();
+                          }
+                        }}
+                        onBlur={() => setKeyListenMode(false)}
+                        readOnly={keyListenMode}
                       />
-                      <button onClick={handleSendKey} disabled={loading || !inputValue.trim()} className="primary">
+                      <button onClick={() => handleSendKey()} disabled={loading || !inputValue.trim()} className="primary">
                         <FiSend />
                       </button>
                     </div>
