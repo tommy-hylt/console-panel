@@ -167,10 +167,10 @@ export function ConsoleItem({
           {!thumbnailMode && (
             <>
               <div className="action-bar">
-                <button onClick={() => { setInputMode(inputMode === 'text' ? 'none' : 'text'); if (inputMode !== 'text') setInputValue(''); }}>
+                <button className={inputMode === 'text' ? 'active' : ''} onClick={() => { setInputMode(inputMode === 'text' ? 'none' : 'text'); if (inputMode !== 'text') setInputValue(''); }}>
                   <FiType style={{ marginRight: 8 }} /> Input Text{loading && inputMode !== 'key' ? '...' : ''}
                 </button>
-                <button onClick={() => { setInputMode(inputMode === 'key' ? 'none' : 'key'); if (inputMode !== 'key') setInputValue('enter'); }}>
+                <button className={inputMode === 'key' ? 'active' : ''} onClick={() => { setInputMode(inputMode === 'key' ? 'none' : 'key'); if (inputMode !== 'key') setInputValue('enter'); }}>
                   <FiCommand style={{ marginRight: 8 }} /> Press Key{loading && inputMode !== 'text' ? '...' : ''}
                 </button>
               </div>
