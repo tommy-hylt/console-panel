@@ -42,10 +42,10 @@ def press_key(handle_str, key):
         import pyautogui
         pyautogui.FAILSAFE = False
 
-        # Handle key combinations like "ctrl+c", "alt+f4"
+        # Handle key combinations like "ctrl+c", "Ctrl + C", "alt+f4"
         key = key.strip().lower()
         if '+' in key:
-            parts = [p.strip() for p in key.split('+')]
+            parts = [p.strip() for p in key.split('+') if p.strip()]
             pyautogui.hotkey(*parts)
         else:
             pyautogui.press(key)

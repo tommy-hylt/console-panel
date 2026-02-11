@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FiChevronRight, FiChevronDown, FiStar,
   FiX, FiSend, FiRefreshCw,
-  FiExternalLink, FiType, FiCommand
+  FiExternalLink, FiType, FiCommand, FiEdit2
 } from 'react-icons/fi';
 import type { WindowInfo } from './api';
 import { captureWindow, foregroundWindow, typeText, pressKey, killWindow } from './api';
@@ -18,6 +18,8 @@ interface ConsoleItemProps {
   onRemove: () => void;
   thumbnailMode: boolean;
   index: number; // For staggering refresh
+  nickname?: string;
+  onSetNickname: (name: string) => void;
 }
 
 export function ConsoleItem({
@@ -27,15 +29,20 @@ export function ConsoleItem({
   onRemove,
   thumbnailMode,
   index,
+  nickname,
+  onSetNickname,
 }: ConsoleItemProps) {
   const [expanded, setExpanded] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<'none' | 'text' | 'key'>('none');
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [editingNickname, setEditingNickname] = useState(false);
   const refreshTimeoutRef = useRef<number | null>(null);
   const refreshCaptureRef = useRef<() => void>(null);
   const initialLoadRef = useRef(false);
+  const nicknameInputRef = useRef<HTMLInputElement>(null);
 
   // Should capture when expanded OR in thumbnail mode
   const shouldCapture = expanded || thumbnailMode;
@@ -109,7 +116,9 @@ export function ConsoleItem({
   const handleSendKey = async () => {
     if (!inputValue.trim()) return;
     setLoading(true);
-    await pressKey(winInfo.handle, inputValue);
+    // Normalize: "Ctrl + C" -> "ctrl+c"
+    const normalized = inputValue.split('+').map(p => p.trim().toLowerCase()).filter(Boolean).join('+');
+    await pressKey(winInfo.handle, normalized);
     setLoading(false);
   };
 
@@ -118,6 +127,52 @@ export function ConsoleItem({
     if (!confirm(`Close "${winInfo.title}"?`)) return;
     await killWindow(winInfo.handle);
     onRemove();
+  };
+
+  const handleManualRefresh = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (refreshing) return;
+    setRefreshing(true);
+    // Cancel pending auto-refresh
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+    try {
+      const blob = await captureWindow(winInfo.handle);
+      const url = URL.createObjectURL(blob);
+      setImageUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+    } catch (e) {
+      console.error('Manual refresh failed:', e);
+    }
+    setRefreshing(false);
+    // Restart auto-refresh timer
+    if (shouldCapture) {
+      refreshTimeoutRef.current = setTimeout(() => refreshCaptureRef.current?.(), getRefreshInterval()) as unknown as number;
+    }
+  };
+
+  const handleNicknameEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingNickname(true);
+    setTimeout(() => nicknameInputRef.current?.focus(), 0);
+  };
+
+  const handleNicknameSave = (value: string) => {
+    onSetNickname(value.trim());
+    setEditingNickname(false);
+  };
+
+  const handleNicknameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      handleNicknameSave(e.currentTarget.value);
+    } else if (e.key === 'Escape') {
+      setEditingNickname(false);
+    }
   };
 
   const toggleExpanded = () => setExpanded(!expanded);
@@ -129,11 +184,34 @@ export function ConsoleItem({
       <div className="card-header" onClick={toggleExpanded}>
         <div className="card-title-row">
           {!thumbnailMode && (expanded ? <FiChevronDown /> : <FiChevronRight />)}
-          <span className="card-title" style={{ marginLeft: thumbnailMode ? 0 : 8 }}>{winInfo.title}</span>
+          <button className="nickname-edit-btn" onClick={handleNicknameEdit} title="Edit nickname">
+            <FiEdit2 />
+          </button>
+          {editingNickname ? (
+            <input
+              ref={nicknameInputRef}
+              className="nickname-edit-input"
+              type="text"
+              defaultValue={nickname || ''}
+              placeholder="Enter nickname..."
+              onBlur={(e) => handleNicknameSave(e.currentTarget.value)}
+              onKeyDown={handleNicknameKeyDown}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <div className="card-title-text" style={{ marginLeft: thumbnailMode ? 0 : undefined }}>
+              {nickname && <span className="card-nickname">{nickname}</span>}
+              {nickname && <span style={{ color: '#525f7f', flexShrink: 0 }}>—</span>}
+              <span className="card-title">{winInfo.title}</span>
+            </div>
+          )}
         </div>
         <div className="card-controls-row">
           <span className="card-handle">{winInfo.handle} · PID {winInfo.pid}</span>
           <div className="card-actions" onClick={e => e.stopPropagation()}>
+            <button onClick={handleManualRefresh} title="Refresh capture">
+              <FiRefreshCw className={refreshing ? 'spin' : ''} />
+            </button>
             <button onClick={handleForeground} title="Bring to Foreground">
               <FiExternalLink />
             </button>

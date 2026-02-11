@@ -6,6 +6,7 @@ import { ConsoleItem } from './ConsoleItem';
 import './App.css';
 
 const STARRED_KEY = 'consolepanel-starred';
+const NICKNAMES_KEY = 'consolepanel-nicknames';
 const MAX_STARRED = 20;
 const ANIM_DURATION = 500;
 
@@ -21,11 +22,24 @@ function saveStarred(set: Set<string>) {
   localStorage.setItem(STARRED_KEY, JSON.stringify([...set]));
 }
 
+function loadNicknames(): Map<string, string> {
+  try {
+    const raw = localStorage.getItem(NICKNAMES_KEY);
+    if (raw) return new Map(Object.entries(JSON.parse(raw)));
+  } catch { /* ignore corrupt localStorage */ }
+  return new Map();
+}
+
+function saveNicknames(map: Map<string, string>) {
+  localStorage.setItem(NICKNAMES_KEY, JSON.stringify(Object.fromEntries(map)));
+}
+
 function App() {
   const [windows, setWindows] = useState<WindowInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [thumbnailMode, setThumbnailMode] = useState(false);
   const [starred, setStarred] = useState<Set<string>>(loadStarred);
+  const [nicknames, setNicknames] = useState<Map<string, string>>(loadNicknames);
   const [animating, setAnimating] = useState<{ handle: string; direction: 'star' | 'unstar' } | null>(null);
   // For unstar: after exit completes, this triggers enter animation at the item's natural position
   const [enteringHandle, setEnteringHandle] = useState<string | null>(null);
@@ -80,6 +94,19 @@ function App() {
       }, ANIM_DURATION);
     }
   }, [animating, enteringHandle, starred]);
+
+  const setNickname = useCallback((handle: string, name: string) => {
+    setNicknames(prev => {
+      const next = new Map(prev);
+      if (name) {
+        next.set(handle, name);
+      } else {
+        next.delete(handle);
+      }
+      saveNicknames(next);
+      return next;
+    });
+  }, []);
 
   const fetchWindows = useCallback(async () => {
     try {
@@ -139,6 +166,8 @@ function App() {
             onRemove={() => removeWindow(w.handle)}
             thumbnailMode={thumbnailMode}
             index={idx++}
+            nickname={nicknames.get(w.handle)}
+            onSetNickname={(name) => setNickname(w.handle, name)}
           />
         </div>
       );
@@ -157,6 +186,8 @@ function App() {
               onRemove={() => {}}
               thumbnailMode={thumbnailMode}
               index={idx++}
+              nickname={nicknames.get(w.handle)}
+              onSetNickname={() => {}}
             />
           </div>
         );
@@ -180,6 +211,8 @@ function App() {
             onRemove={() => removeWindow(w.handle)}
             thumbnailMode={thumbnailMode}
             index={idx++}
+            nickname={nicknames.get(w.handle)}
+            onSetNickname={(name) => setNickname(w.handle, name)}
           />
         </div>
       );
@@ -191,7 +224,7 @@ function App() {
   return (
     <div className="app-container">
       <header className="header">
-        <h1>ConsolePanel</h1>
+        <h1><img src="/logo.svg" alt="" style={{ width: 28, height: 28, verticalAlign: 'middle', marginRight: 10 }} />ConsolePanel</h1>
         <div className="controls">
           <button
             onClick={() => setThumbnailMode(!thumbnailMode)}

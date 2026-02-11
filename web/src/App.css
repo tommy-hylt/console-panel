@@ -138,16 +138,69 @@ button.danger:hover:not(:disabled) {
 .card-title-row {
   display: flex;
   align-items: center;
+  min-width: 0;
+}
+
+.card-title-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .card-title {
-  flex: 1;
   font-weight: 400;
   font-size: 14px;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+
+.card-nickname {
+  font-weight: 500;
+  font-size: 14px;
+  color: #e14eca;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nickname-edit-btn {
+  padding: 2px;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #525f7f;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.nickname-edit-btn:hover:not(:disabled) {
+  color: #e14eca;
+  border-color: rgba(225, 78, 202, 0.3);
+  background: rgba(225, 78, 202, 0.1);
+}
+
+.nickname-edit-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 8px;
+  border: 1px solid #e14eca;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  background: #1e1e2f;
+  color: #fff;
+  height: 26px;
+}
+
+.nickname-edit-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(225, 78, 202, 0.2);
 }
 
 .card-controls-row {
