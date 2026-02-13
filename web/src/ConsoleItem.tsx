@@ -43,6 +43,7 @@ export function ConsoleItem({
   const [refreshing, setRefreshing] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
   const [keyListenMode, setKeyListenMode] = useState(false);
+  const [confirmingClose, setConfirmingClose] = useState(false);
   const refreshTimeoutRef = useRef<number | null>(null);
   const refreshCaptureRef = useRef<() => void>(null);
   const initialLoadRef = useRef(false);
@@ -161,9 +162,12 @@ export function ConsoleItem({
     }
   };
 
-  const handleKill = async (e: React.MouseEvent) => {
+  const handleKill = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`Close "${winInfo.title}"?`)) return;
+    setConfirmingClose(true);
+  };
+
+  const handleConfirmKill = async () => {
     await killWindow(winInfo.handle);
     onRemove();
   };
@@ -267,6 +271,16 @@ export function ConsoleItem({
           </div>
         </div>
       </div>
+
+      {confirmingClose && (
+        <div className="confirm-bar">
+          <span>Confirm to close this console?</span>
+          <div className="confirm-bar-actions">
+            <button className="danger" onClick={handleConfirmKill}>Yes</button>
+            <button onClick={() => setConfirmingClose(false)}>No</button>
+          </div>
+        </div>
+      )}
 
       {isActuallyExpanded && (
         <div className="card-content">

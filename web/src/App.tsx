@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FiPlus, FiRefreshCw, FiGrid, FiList } from 'react-icons/fi';
+import { FiPlus, FiRefreshCw, FiGrid, FiList, FiClock } from 'react-icons/fi';
 import type { WindowInfo } from './api';
 import { listWindows, newConsole } from './api';
 import { ConsoleItem } from './ConsoleItem';
@@ -7,8 +7,12 @@ import './App.css';
 
 const STARRED_KEY = 'consolepanel-starred';
 const NICKNAMES_KEY = 'consolepanel-nicknames';
-const MAX_STARRED = 20;
+const HISTORY_KEY = 'consolepanel-new-history';
+const MAX_STARRED = 100;
+const MAX_HISTORY = 100;
 const ANIM_DURATION = 500;
+
+type NewConsoleRecord = { command: string; directory: string };
 
 function loadStarred(): Set<string> {
   try {
@@ -41,6 +45,17 @@ function App() {
   const [starred, setStarred] = useState<Set<string>>(loadStarred);
   const [nicknames, setNicknames] = useState<Map<string, string>>(loadNicknames);
   const [animating, setAnimating] = useState<{ handle: string; direction: 'star' | 'unstar' } | null>(null);
+  const [showNewConsoleForm, setShowNewConsoleForm] = useState(false);
+  const [newCommand, setNewCommand] = useState('');
+  const [newDirectory, setNewDirectory] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [newConsoleHistory, setNewConsoleHistory] = useState<NewConsoleRecord[]>(() => {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    return [];
+  });
   // For unstar: after exit completes, this triggers enter animation at the item's natural position
   const [enteringHandle, setEnteringHandle] = useState<string | null>(null);
   const enterRef = useRef<HTMLDivElement>(null);
@@ -141,8 +156,23 @@ function App() {
   };
 
   const handleNewConsole = async () => {
-    const title = prompt('Console title (optional):');
-    await newConsole(title || undefined);
+    const cmd = newCommand.trim() || undefined;
+    const dir = newDirectory.trim() || undefined;
+    await newConsole(undefined, cmd, dir);
+    // Save to history (dedup by command+directory)
+    if (cmd || dir) {
+      const record: NewConsoleRecord = { command: cmd || '', directory: dir || '' };
+      setNewConsoleHistory(prev => {
+        const deduped = prev.filter(r => r.command !== record.command || r.directory !== record.directory);
+        const next = [record, ...deduped].slice(0, MAX_HISTORY);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+        return next;
+      });
+    }
+    setNewCommand('');
+    setNewDirectory('');
+    setShowNewConsoleForm(false);
+    setShowHistory(false);
     setTimeout(fetchWindows, 500);
   };
 
@@ -236,11 +266,58 @@ function App() {
           <button onClick={fetchWindows}>
             <FiRefreshCw style={{ marginRight: 8 }} /> Refresh
           </button>
-          <button onClick={handleNewConsole} className="primary">
+          <button
+            onClick={() => setShowNewConsoleForm(!showNewConsoleForm)}
+            className={showNewConsoleForm ? 'new-console-btn-active' : 'primary'}
+          >
             <FiPlus style={{ marginRight: 8 }} /> New Console
           </button>
         </div>
       </header>
+
+      {showNewConsoleForm && (
+        <div className="new-console-form">
+          <div className="new-console-fields">
+            <input
+              type="text"
+              value={newCommand}
+              onChange={e => setNewCommand(e.target.value)}
+              placeholder="cmd.exe"
+              onKeyDown={e => { if (e.key === 'Enter') handleNewConsole(); }}
+            />
+            <input
+              type="text"
+              value={newDirectory}
+              onChange={e => setNewDirectory(e.target.value)}
+              placeholder="Working directory"
+              onKeyDown={e => { if (e.key === 'Enter') handleNewConsole(); }}
+            />
+          </div>
+          <div className="new-console-actions">
+            {newConsoleHistory.length > 0 && (
+              <button className="history-btn" onClick={() => setShowHistory(!showHistory)}>
+                <FiClock style={{ marginRight: 4 }} /> History
+              </button>
+            )}
+            <button className="primary" onClick={handleNewConsole}>Create</button>
+            <button onClick={() => { setShowNewConsoleForm(false); setShowHistory(false); }}>Cancel</button>
+          </div>
+          {showHistory && newConsoleHistory.length > 0 && (
+            <div className="history-dropdown">
+              {newConsoleHistory.map((r, i) => (
+                <div
+                  key={i}
+                  className="history-item"
+                  onClick={() => { setNewCommand(r.command); setNewDirectory(r.directory); setShowHistory(false); }}
+                >
+                  <span className="history-item-cmd">{r.command || 'cmd.exe'}</span>
+                  {r.directory && <span className="history-item-dir">{r.directory}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40 }}>Loading...</div>

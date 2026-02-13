@@ -67,13 +67,16 @@ export async function captureWindowPy(handle: string, outPath: string): Promise<
   return JSON.parse(r.stdout.trim() || '{"ok":false}');
 }
 
-export async function newConsole(command?: string, title?: string): Promise<{ ok: boolean; error?: string }> {
+export async function newConsole(command?: string, title?: string, directory?: string): Promise<{ ok: boolean; error?: string }> {
   const args: string[] = [];
   if (command) {
     args.push('--command', command);
   }
   if (title) {
     args.push('--title', title);
+  }
+  if (directory) {
+    args.push('--directory', directory);
   }
   const r = await runPython('NewConsole.py', args);
   return JSON.parse(r.stdout.trim() || '{"ok":false}');

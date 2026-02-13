@@ -61,11 +61,11 @@ export async function killWindow(handle: string): Promise<ApiResult> {
   return res.json();
 }
 
-export async function newConsole(title?: string, command?: string): Promise<ApiResult> {
+export async function newConsole(title?: string, command?: string, directory?: string): Promise<ApiResult> {
   const res = await fetch(`${API_BASE}/new`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, command }),
+    body: JSON.stringify({ title, command, directory }),
   });
   return res.json();
 }

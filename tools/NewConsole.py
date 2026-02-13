@@ -8,7 +8,7 @@ import subprocess
 # Windows flag for creating new console
 CREATE_NEW_CONSOLE = 0x00000010
 
-def new_console(command=None, title=None):
+def new_console(command=None, title=None, directory=None):
     try:
         # Build command to run in new console
         if title:
@@ -28,7 +28,8 @@ def new_console(command=None, title=None):
         subprocess.Popen(
             args,
             creationflags=CREATE_NEW_CONSOLE,
-            close_fds=True
+            close_fds=True,
+            cwd=directory or None
         )
 
         return {"ok": True, "command": command or "cmd", "title": title}
@@ -39,6 +40,8 @@ if __name__ == "__main__":
     command = None
     title = None
 
+    directory = None
+
     i = 1
     while i < len(sys.argv):
         if sys.argv[i] == "--command" and i + 1 < len(sys.argv):
@@ -47,9 +50,12 @@ if __name__ == "__main__":
         elif sys.argv[i] == "--title" and i + 1 < len(sys.argv):
             title = sys.argv[i + 1]
             i += 2
+        elif sys.argv[i] == "--directory" and i + 1 < len(sys.argv):
+            directory = sys.argv[i + 1]
+            i += 2
         else:
             i += 1
 
-    result = new_console(command, title)
+    result = new_console(command, title, directory)
     print(json.dumps(result))
     sys.exit(0 if result["ok"] else 1)
