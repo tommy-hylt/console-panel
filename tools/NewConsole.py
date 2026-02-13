@@ -2,6 +2,7 @@
 """Open a new console window."""
 
 import sys
+import os
 import json
 import subprocess
 
@@ -10,26 +11,30 @@ CREATE_NEW_CONSOLE = 0x00000010
 
 def new_console(command=None, title=None, directory=None):
     try:
-        # Build command to run in new console
-        if title:
-            cmd_str = f'title {title}'
-            if command:
-                cmd_str += f' && {command}'
-        elif command:
-            cmd_str = command
-        else:
-            cmd_str = None
+        # Resolve directory to absolute path
+        resolved_dir = os.path.abspath(directory) if directory else None
 
-        args = ['cmd.exe']
-        if cmd_str:
-            args.extend(['/k', cmd_str])
+        # Build command parts — cwd param doesn't work with CREATE_NEW_CONSOLE,
+        # so use cd /d inside cmd.exe instead.
+        # Use a single string to avoid subprocess double-quoting.
+        parts = []
+        if resolved_dir:
+            parts.append(f'cd /d "{resolved_dir}"')
+        if title:
+            parts.append(f'title "{title}"')
+        if command:
+            parts.append(f'"{command}"')
+
+        if parts:
+            cmd_line = f'cmd.exe /k {" && ".join(parts)}'
+        else:
+            cmd_line = 'cmd.exe'
 
         # Create new console window
         subprocess.Popen(
-            args,
+            cmd_line,
             creationflags=CREATE_NEW_CONSOLE,
-            close_fds=True,
-            cwd=directory or None
+            close_fds=True
         )
 
         return {"ok": True, "command": command or "cmd", "title": title}
