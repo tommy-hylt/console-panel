@@ -61,6 +61,12 @@ export async function killWindow(handle: string): Promise<ApiResult> {
   return res.json();
 }
 
+export async function listDir(path?: string): Promise<{ ok: boolean; path: string; dirs: string[] }> {
+  const params = path ? `?path=${encodeURIComponent(path)}` : '';
+  const res = await fetch(`${API_BASE}/ls${params}`);
+  return res.json();
+}
+
 export async function newConsole(title?: string, command?: string, directory?: string): Promise<ApiResult> {
   const res = await fetch(`${API_BASE}/new`, {
     method: 'POST',

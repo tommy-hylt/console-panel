@@ -67,6 +67,15 @@ export async function captureWindowPy(handle: string, outPath: string): Promise<
   return JSON.parse(r.stdout.trim() || '{"ok":false}');
 }
 
+export async function listDir(dirPath?: string): Promise<{ ok: boolean; path: string; dirs: string[]; error?: string }> {
+  const args: string[] = [];
+  if (dirPath) {
+    args.push('--path', dirPath);
+  }
+  const r = await runPython('ListDir.py', args);
+  return JSON.parse(r.stdout.trim() || '{"ok":false,"path":"","dirs":[]}');
+}
+
 export async function newConsole(command?: string, title?: string, directory?: string): Promise<{ ok: boolean; error?: string }> {
   const args: string[] = [];
   if (command) {

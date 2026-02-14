@@ -3,7 +3,7 @@ import {
   FiChevronRight, FiChevronDown, FiStar,
   FiX, FiSend, FiRefreshCw,
   FiExternalLink, FiType, FiCommand, FiEdit2,
-  FiCrosshair
+  FiCrosshair, FiClock
 } from 'react-icons/fi';
 import type { WindowInfo } from './api';
 import { captureWindow, foregroundWindow, typeText, pressKey, killWindow } from './api';
@@ -43,6 +43,8 @@ export function ConsoleItem({
   const [refreshing, setRefreshing] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
   const [keyListenMode, setKeyListenMode] = useState(false);
+  const [textHistory, setTextHistory] = useState<string[]>([]);
+  const [showTextHistory, setShowTextHistory] = useState(false);
   const [confirmingClose, setConfirmingClose] = useState(false);
   const refreshTimeoutRef = useRef<number | null>(null);
   const refreshCaptureRef = useRef<() => void>(null);
@@ -110,13 +112,29 @@ export function ConsoleItem({
     await foregroundWindow(winInfo.handle);
   };
 
+  const addToTextHistory = (text: string) => {
+    setTextHistory(prev => {
+      const filtered = prev.filter(t => t !== text);
+      return [text, ...filtered].slice(0, 3);
+    });
+  };
+
   const handleSendText = async () => {
     if (!textValue.trim()) return;
     const value = textValue;
+    addToTextHistory(value);
     setTextValue('');
     setLoading(true);
     await typeText(winInfo.handle, value);
     setLoading(false);
+  };
+
+  const handleTextHistoryClick = (historyText: string) => {
+    if (textValue.trim()) {
+      addToTextHistory(textValue);
+    }
+    setTextValue(historyText);
+    setShowTextHistory(false);
   };
 
   const addToKeyHistory = (key: string) => {
@@ -309,17 +327,35 @@ export function ConsoleItem({
               {inputMode !== 'none' && (
                 <div className="input-section">
                   {inputMode === 'text' ? (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <textarea
-                        value={textValue}
-                        onChange={(e) => setTextValue(e.target.value)}
-                        placeholder="Enter text to type..."
-                        rows={3}
-                      />
-                      <button onClick={handleSendText} disabled={loading || !textValue.trim()} className="primary">
-                        <FiSend />
-                      </button>
-                    </div>
+                    <>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <textarea
+                          value={textValue}
+                          onChange={(e) => setTextValue(e.target.value)}
+                          placeholder="Enter text to type..."
+                          rows={3}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <button onClick={handleSendText} disabled={loading || !textValue.trim()} className="primary" style={{ flex: 1 }}>
+                            <FiSend />
+                          </button>
+                          {textHistory.length > 0 && (
+                            <button className="history-btn" onClick={() => setShowTextHistory(!showTextHistory)} title="Text history">
+                              <FiClock />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {showTextHistory && textHistory.length > 0 && (
+                        <div className="text-history-list">
+                          {textHistory.map((t, i) => (
+                            <div key={i} className="text-history-item" onClick={() => handleTextHistoryClick(t)}>
+                              {t}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="key-grid">
                       <button

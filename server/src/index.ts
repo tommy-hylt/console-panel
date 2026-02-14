@@ -8,6 +8,7 @@ import { textHandler } from './routes/text';
 import { keyHandler } from './routes/key';
 import { killHandler } from './routes/kill';
 import { newHandler } from './routes/new';
+import { lsHandler } from './routes/ls';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(express.json());
 // GET endpoints
 app.get('/list', listHandler);
 app.get('/capture/:handle', captureHandler);
+app.get('/ls', lsHandler);
 
 // POST endpoints
 app.post('/foreground', foregroundHandler);

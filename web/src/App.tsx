@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FiPlus, FiRefreshCw, FiGrid, FiList, FiClock } from 'react-icons/fi';
+import { FiPlus, FiRefreshCw, FiGrid, FiList, FiClock, FiFolder } from 'react-icons/fi';
 import type { WindowInfo } from './api';
-import { listWindows, newConsole } from './api';
+import { listWindows, newConsole, listDir } from './api';
 import { ConsoleItem } from './ConsoleItem';
 import './App.css';
 
@@ -56,9 +56,84 @@ function App() {
     } catch { /* ignore */ }
     return [];
   });
+  const [folderBrowserOpen, setFolderBrowserOpen] = useState(false);
+  const [folderColumns, setFolderColumns] = useState<Array<{ parentPath: string; dirs: string[]; selected: string | null }>>([]);
+  const [defaultDir, setDefaultDir] = useState('');
+  const folderBrowserRef = useRef<HTMLDivElement>(null);
   // For unstar: after exit completes, this triggers enter animation at the item's natural position
   const [enteringHandle, setEnteringHandle] = useState<string | null>(null);
   const enterRef = useRef<HTMLDivElement>(null);
+
+  // Fetch default directory (tools/ abs path) on first form open
+  useEffect(() => {
+    if (showNewConsoleForm && !defaultDir) {
+      listDir().then(r => {
+        if (r.ok && r.path) {
+          setDefaultDir(r.path);
+          if (!newDirectory) setNewDirectory(r.path);
+        }
+      });
+    }
+  }, [showNewConsoleForm]);
+
+  // Build folder columns from current newDirectory path
+  const buildFolderColumns = useCallback(async (dirPath: string) => {
+    const sep = dirPath.includes('/') ? '/' : '\\';
+    // Split path: "C:\Users\User" -> ["C:", "Users", "User"]
+    const raw = dirPath.split(sep).filter(Boolean);
+    if (raw.length === 0) return;
+
+    // Rebuild accumulated paths: ["C:\", "C:\Users", "C:\Users\User"]
+    const accPaths: string[] = [];
+    accPaths.push(raw[0] + sep); // root: "C:\"
+    for (let i = 1; i < raw.length; i++) {
+      accPaths.push(accPaths[i - 1] + raw[i] + (i < raw.length - 1 ? sep : ''));
+    }
+
+    // Fetch children for each level in parallel
+    const results = await Promise.all(accPaths.map(p => listDir(p)));
+
+    const columns: Array<{ parentPath: string; dirs: string[]; selected: string | null }> = [];
+    for (let i = 0; i < accPaths.length; i++) {
+      const r = results[i];
+      columns.push({
+        parentPath: accPaths[i],
+        dirs: r.ok ? r.dirs : [],
+        selected: raw[i + 1] || null,
+      });
+    }
+
+    setFolderColumns(columns);
+    requestAnimationFrame(() => {
+      if (folderBrowserRef.current) folderBrowserRef.current.scrollLeft = folderBrowserRef.current.scrollWidth;
+    });
+  }, []);
+
+  const handleFolderClick = useCallback(async (columnIndex: number, folderName: string) => {
+    const col = folderColumns[columnIndex];
+    if (!col) return;
+    const sep = col.parentPath.includes('/') ? '/' : '\\';
+    const newPath = col.parentPath.endsWith(sep) ? col.parentPath + folderName : col.parentPath + sep + folderName;
+    setNewDirectory(newPath);
+
+    // Fetch children of clicked folder
+    const r = await listDir(newPath);
+    const newColumns = folderColumns.slice(0, columnIndex);
+    newColumns.push({ ...col, selected: folderName });
+    newColumns.push({ parentPath: newPath, dirs: r.ok ? r.dirs : [], selected: null });
+    setFolderColumns(newColumns);
+    requestAnimationFrame(() => {
+      if (folderBrowserRef.current) folderBrowserRef.current.scrollLeft = folderBrowserRef.current.scrollWidth;
+    });
+  }, [folderColumns]);
+
+  const toggleFolderBrowser = useCallback(async () => {
+    if (!folderBrowserOpen) {
+      const dir = newDirectory.trim() || defaultDir;
+      if (dir) await buildFolderColumns(dir);
+    }
+    setFolderBrowserOpen(prev => !prev);
+  }, [folderBrowserOpen, newDirectory, defaultDir, buildFolderColumns]);
 
   // Scroll to entering item when unstar enter phase begins
   useEffect(() => {
@@ -173,6 +248,7 @@ function App() {
     setNewDirectory('');
     setShowNewConsoleForm(false);
     setShowHistory(false);
+    setFolderBrowserOpen(false);
     setTimeout(fetchWindows, 500);
   };
 
@@ -285,13 +361,36 @@ function App() {
               placeholder="cmd.exe"
               onKeyDown={e => { if (e.key === 'Enter') handleNewConsole(); }}
             />
-            <input
-              type="text"
-              value={newDirectory}
-              onChange={e => setNewDirectory(e.target.value)}
-              placeholder="Working directory"
-              onKeyDown={e => { if (e.key === 'Enter') handleNewConsole(); }}
-            />
+            <div className="dir-input-row">
+              <input
+                type="text"
+                value={newDirectory}
+                onChange={e => { setNewDirectory(e.target.value); setFolderBrowserOpen(false); }}
+                placeholder="Working directory"
+                onKeyDown={e => { if (e.key === 'Enter') handleNewConsole(); }}
+              />
+              <button className="folder-toggle-btn" onClick={toggleFolderBrowser} title="Browse folders">
+                <FiFolder />
+              </button>
+            </div>
+            {folderBrowserOpen && folderColumns.length > 0 && (
+              <div className="folder-browser" ref={folderBrowserRef}>
+                {folderColumns.map((col, ci) => (
+                  <div className="folder-column" key={ci}>
+                    {col.dirs.map(d => (
+                      <div
+                        key={d}
+                        className={'folder-column-item' + (d === col.selected ? ' selected' : '')}
+                        onClick={() => handleFolderClick(ci, d)}
+                      >
+                        {d}
+                      </div>
+                    ))}
+                    {col.dirs.length === 0 && <div className="folder-column-empty">Empty</div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="new-console-actions">
             {newConsoleHistory.length > 0 && (
@@ -300,7 +399,7 @@ function App() {
               </button>
             )}
             <button className="primary" onClick={handleNewConsole}>Create</button>
-            <button onClick={() => { setShowNewConsoleForm(false); setShowHistory(false); }}>Cancel</button>
+            <button onClick={() => { setShowNewConsoleForm(false); setShowHistory(false); setFolderBrowserOpen(false); }}>Cancel</button>
           </div>
           {showHistory && newConsoleHistory.length > 0 && (
             <div className="history-dropdown">
