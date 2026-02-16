@@ -41,6 +41,7 @@ function saveNicknames(map: Map<string, string>) {
 function App() {
   const [windows, setWindows] = useState<WindowInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingList, setRefreshingList] = useState(false);
   const [thumbnailMode, setThumbnailMode] = useState(false);
   const [starred, setStarred] = useState<Set<string>>(loadStarred);
   const [nicknames, setNicknames] = useState<Map<string, string>>(loadNicknames);
@@ -56,6 +57,7 @@ function App() {
     } catch { /* ignore */ }
     return [];
   });
+  const [handleOrder, setHandleOrder] = useState<string[]>([]);
   const [folderBrowserOpen, setFolderBrowserOpen] = useState(false);
   const [folderColumns, setFolderColumns] = useState<Array<{ parentPath: string; dirs: string[]; selected: string | null }>>([]);
   const [defaultDir, setDefaultDir] = useState('');
@@ -201,18 +203,19 @@ function App() {
   const fetchWindows = useCallback(async () => {
     try {
       const list = await listWindows();
-      setWindows((prev) => {
-        const prevHandles = new Map(prev.map((w) => [w.handle, w]));
-        const newList: WindowInfo[] = [];
-        for (const pw of prev) {
-          const found = list.find((w) => w.handle === pw.handle);
-          if (found) newList.push(found);
-        }
+
+      // Update stable handle order: keep known handles in place, append new ones
+      setHandleOrder(prev => {
+        const known = new Set(prev);
+        const next = [...prev];
         for (const w of list) {
-          if (!prevHandles.has(w.handle)) newList.push(w);
+          if (!known.has(w.handle)) next.push(w.handle);
         }
-        return newList;
+        return next;
       });
+
+      // Just store the latest window data; ordering is applied at render time
+      setWindows(list);
     } catch (e) {
       console.error('Failed to fetch windows:', e);
     } finally {
@@ -253,8 +256,15 @@ function App() {
   };
 
   // Split windows into starred and normal, maintaining original order
-  const starredWindows = windows.filter(w => starred.has(w.handle));
-  const normalWindows = windows.filter(w => !starred.has(w.handle));
+  // Sort windows by stable handle order, then split into starred/normal
+  const orderIndex = new Map(handleOrder.map((h, i) => [h, i]));
+  const sortedWindows = [...windows].sort((a, b) => {
+    const ai = orderIndex.get(a.handle) ?? Infinity;
+    const bi = orderIndex.get(b.handle) ?? Infinity;
+    return ai - bi;
+  });
+  const starredWindows = sortedWindows.filter(w => starred.has(w.handle));
+  const normalWindows = sortedWindows.filter(w => !starred.has(w.handle));
 
   const renderItems = () => {
     const items: React.ReactNode[] = [];
@@ -339,8 +349,8 @@ function App() {
             {thumbnailMode ? <FiList style={{ marginRight: 8 }} /> : <FiGrid style={{ marginRight: 8 }} />}
             {thumbnailMode ? 'List View' : 'Grid View'}
           </button>
-          <button onClick={fetchWindows}>
-            <FiRefreshCw style={{ marginRight: 8 }} /> Refresh
+          <button onClick={async () => { setRefreshingList(true); await fetchWindows(); setRefreshingList(false); }}>
+            <FiRefreshCw className={refreshingList ? 'spin' : ''} style={{ marginRight: 8 }} /> Refresh
           </button>
           <button
             onClick={() => setShowNewConsoleForm(!showNewConsoleForm)}

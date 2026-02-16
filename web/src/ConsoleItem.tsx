@@ -3,7 +3,7 @@ import {
   FiChevronRight, FiChevronDown, FiStar,
   FiX, FiSend, FiRefreshCw,
   FiExternalLink, FiType, FiCommand, FiEdit2,
-  FiCrosshair, FiClock
+  FiCrosshair, FiClock, FiTerminal
 } from 'react-icons/fi';
 import type { WindowInfo } from './api';
 import { captureWindow, foregroundWindow, typeText, pressKey, killWindow } from './api';
@@ -35,10 +35,10 @@ export function ConsoleItem({
 }: ConsoleItemProps) {
   const [expanded, setExpanded] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [inputMode, setInputMode] = useState<'none' | 'text' | 'key'>('none');
+  const [inputMode, setInputMode] = useState<'none' | 'command' | 'text' | 'key'>('none');
   const [textValue, setTextValue] = useState('');
   const [keyValue, setKeyValue] = useState('enter');
-  const [keyHistory, setKeyHistory] = useState<string[]>([]);
+  const [keyHistory, setKeyHistory] = useState<string[]>(['enter', 'escape']);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
@@ -135,6 +135,17 @@ export function ConsoleItem({
     }
     setTextValue(historyText);
     setShowTextHistory(false);
+  };
+
+  const handleSendCommand = async () => {
+    if (!textValue.trim()) return;
+    const value = textValue;
+    addToTextHistory(value);
+    setTextValue('');
+    setLoading(true);
+    await typeText(winInfo.handle, value);
+    await pressKey(winInfo.handle, 'enter');
+    setLoading(false);
   };
 
   const addToKeyHistory = (key: string) => {
@@ -316,27 +327,36 @@ export function ConsoleItem({
           {!thumbnailMode && (
             <>
               <div className="action-bar">
+                <button className={inputMode === 'command' ? 'active' : ''} onClick={() => setInputMode(inputMode === 'command' ? 'none' : 'command')}>
+                  <FiTerminal style={{ marginRight: 8 }} /> Command{loading && inputMode === 'command' ? '...' : ''}
+                </button>
                 <button className={inputMode === 'text' ? 'active' : ''} onClick={() => setInputMode(inputMode === 'text' ? 'none' : 'text')}>
-                  <FiType style={{ marginRight: 8 }} /> Input Text{loading && inputMode === 'text' ? '...' : ''}
+                  <FiType style={{ marginRight: 8 }} /> Text{loading && inputMode === 'text' ? '...' : ''}
                 </button>
                 <button className={inputMode === 'key' ? 'active' : ''} onClick={() => setInputMode(inputMode === 'key' ? 'none' : 'key')}>
-                  <FiCommand style={{ marginRight: 8 }} /> Press Key{loading && inputMode === 'key' ? '...' : ''}
+                  <FiCommand style={{ marginRight: 8 }} /> Key{loading && inputMode === 'key' ? '...' : ''}
                 </button>
               </div>
 
               {inputMode !== 'none' && (
                 <div className="input-section">
-                  {inputMode === 'text' ? (
+                  {inputMode === 'command' || inputMode === 'text' ? (
                     <>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <textarea
                           value={textValue}
                           onChange={(e) => setTextValue(e.target.value)}
-                          placeholder="Enter text to type..."
+                          placeholder={inputMode === 'command' ? 'Enter command to send...' : 'Enter text to type...'}
                           rows={3}
+                          onKeyDown={inputMode === 'command' ? (e) => { if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); handleSendCommand(); } } : undefined}
                         />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <button onClick={handleSendText} disabled={loading || !textValue.trim()} className="primary" style={{ flex: 1 }}>
+                          <button
+                            onClick={inputMode === 'command' ? handleSendCommand : handleSendText}
+                            disabled={loading || !textValue.trim()}
+                            className="primary"
+                            style={{ flex: 1 }}
+                          >
                             <FiSend />
                           </button>
                           {textHistory.length > 0 && (
