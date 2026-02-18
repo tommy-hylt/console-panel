@@ -285,6 +285,19 @@ button.danger:hover:not(:disabled) {
   flex-wrap: wrap;
 }
 
+.action-label {
+  margin-left: 8px;
+}
+
+@media (max-width: 600px) {
+  .action-label-hide {
+    display: none;
+  }
+  .action-label {
+    margin-left: 6px;
+  }
+}
+
 .action-bar button.active {
   background: linear-gradient(to bottom left, #e14eca, #ba54f5, #e14eca);
   background-size: 210% 210%;

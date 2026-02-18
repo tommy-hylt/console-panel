@@ -38,7 +38,7 @@ export function ConsoleItem({
   const [inputMode, setInputMode] = useState<'none' | 'command' | 'text' | 'key'>('none');
   const [textValue, setTextValue] = useState('');
   const [keyValue, setKeyValue] = useState('enter');
-  const [keyHistory, setKeyHistory] = useState<string[]>(['enter', 'escape']);
+  const [keyHistory, setKeyHistory] = useState<string[]>(['enter', 'escape', 'ctrl+c', 'backspace']);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
@@ -328,13 +328,13 @@ export function ConsoleItem({
             <>
               <div className="action-bar">
                 <button className={inputMode === 'command' ? 'active' : ''} onClick={() => setInputMode(inputMode === 'command' ? 'none' : 'command')}>
-                  <FiTerminal style={{ marginRight: 8 }} /> Command{loading && inputMode === 'command' ? '...' : ''}
+                  <FiTerminal /><span className={inputMode === 'command' || inputMode === 'none' ? 'action-label' : 'action-label action-label-hide'}> Command{loading && inputMode === 'command' ? '...' : ''}</span>
                 </button>
                 <button className={inputMode === 'text' ? 'active' : ''} onClick={() => setInputMode(inputMode === 'text' ? 'none' : 'text')}>
-                  <FiType style={{ marginRight: 8 }} /> Text{loading && inputMode === 'text' ? '...' : ''}
+                  <FiType /><span className={inputMode === 'text' ? 'action-label' : 'action-label action-label-hide'}> Text{loading && inputMode === 'text' ? '...' : ''}</span>
                 </button>
                 <button className={inputMode === 'key' ? 'active' : ''} onClick={() => setInputMode(inputMode === 'key' ? 'none' : 'key')}>
-                  <FiCommand style={{ marginRight: 8 }} /> Key{loading && inputMode === 'key' ? '...' : ''}
+                  <FiCommand /><span className={inputMode === 'key' ? 'action-label' : 'action-label action-label-hide'}> Key{loading && inputMode === 'key' ? '...' : ''}</span>
                 </button>
               </div>
 
